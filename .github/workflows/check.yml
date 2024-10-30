@@ -21,8 +21,7 @@ jobs:
       - run: |
           git fetch origin develop
           git branch --all
-          git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }} 
-          if [ -z "$(git branch -r origin/develop --format="%(refname:short)" --contains ${{ github.event.pull_request.head.sha }})" ]; then
+          if [ -z "$(git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }})" ]; then
               echo "No commits in develop branch" >&2
               exit 1
           else 
@@ -42,7 +41,12 @@ jobs:
 
       - name: Ensure develop is up-to-date before merging to main
         run: |
-          if [ "$(git rev-parse develop)" != "$(git merge-base develop main)" ]; then
+          git fetch origin
+          git checkout develop
+          git pull origin develop
+          git checkout main
+          git pull origin main
+          if [ "$(git merge-base develop main)" != "$(git rev-parse develop)" ]; then
             echo "Feature branch must be merged into develop before merging to main"
             exit 1
           fi
@@ -78,7 +82,7 @@ jobs:
         run: |
           git checkout develop
           git checkout main
-          if [ "$(git rev-parse develop)" != "$(git merge-base develop main)" ]; then
+          if [ "$(git merge-base develop main)" != "$(git rev-parse develop)" ]; then
             echo "Feature branch must be merged into develop before merging to main"
             exit 1
           fi
