@@ -20,7 +20,6 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           git fetch origin develop
-          git branch --all
           if [ -z "$(git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }} )" ]; then
               echo "No commits in develop branch" >&2
               exit 1
@@ -39,16 +38,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Ensure develop is up-to-date before merging to main
+      - name: Fetch and check branch state
         run: |
           git fetch origin
           git checkout develop
           git pull origin develop
           git checkout main
           git pull origin main
-          if [ "$(git merge-base develop main)" != "$(git rev-parse develop)" ]; then
+          if ! git merge-base --is-ancestor develop main; then
               echo "Feature branch must be merged into develop before merging to main."
-              echo "Please merge your feature branch into develop before trying to merge into main."
+              echo "Please merge your feature branch into develop first."
               exit 1
           fi
 
@@ -82,8 +81,9 @@ jobs:
       - name: Ensure develop is up-to-date before merging to main
         run: |
           git checkout develop
+          git pull origin develop
           git checkout main
-          if [ "$(git merge-base develop main)" != "$(git rev-parse develop)" ]; then
+          if ! git merge-base --is-ancestor develop main; then
               echo "Feature branch must be merged into develop before merging to main."
               exit 1
           fi
@@ -111,10 +111,10 @@ jobs:
       - name: Check format
         run: |
           if [ -z "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
-              echo "No py-files in the commit"
+              echo "No py-files in the commit."
           else                    
-              echo "Py-files in the commit"
+              echo "Py-files in the commit."
               for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-                  black --check --diff --line-length=79 "$file"
+                  black --check --diff --line-length=79 "$file" || exit 1
               done    
           fi
