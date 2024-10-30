@@ -1,15 +1,15 @@
 name: 'pr-checks'
 
 on:
-  push:
+  push: 
     branches: 
-      - develop
+      - develop 
       - main
   pull_request:
     branches:
       - main
       - develop
-      
+     
 env:
   VAULT_URL: https://vault.domain.com:8200
 
@@ -21,7 +21,7 @@ jobs:
       - run: |
           git fetch origin develop
           git branch --all
-          if [ -z "$(git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }})" ]; then
+          if [ -z "$(git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }} )" ]; then
               echo "No commits in develop branch" >&2
               exit 1
           else 
@@ -47,8 +47,9 @@ jobs:
           git checkout main
           git pull origin main
           if [ "$(git merge-base develop main)" != "$(git rev-parse develop)" ]; then
-            echo "Feature branch must be merged into develop before merging to main"
-            exit 1
+              echo "Feature branch must be merged into develop before merging to main."
+              echo "Please merge your feature branch into develop before trying to merge into main."
+              exit 1
           fi
 
   protect-develop:
@@ -63,8 +64,8 @@ jobs:
         run: |
           git fetch origin
           if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/develop)" ]; then
-            echo "You cannot push directly to develop after rebasing. Please recreate your local develop branch."
-            exit 1
+              echo "You cannot push directly to develop after rebasing. Please recreate your local develop branch."
+              exit 1
           fi   
 
   check-merge:
@@ -83,8 +84,8 @@ jobs:
           git checkout develop
           git checkout main
           if [ "$(git merge-base develop main)" != "$(git rev-parse develop)" ]; then
-            echo "Feature branch must be merged into develop before merging to main"
-            exit 1
+              echo "Feature branch must be merged into develop before merging to main."
+              exit 1
           fi
 
   check-black-format:
@@ -92,16 +93,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0  
+          fetch-depth: 0   
 
       - name: Get changed py-files
         id: changed-files
         uses: tj-actions/changed-files@v14.6
         with:
           files: |
-            containers/**/*.py
-            dags/**/*.py
-            ml_pipeline/**/*.py
+            containers/*/.py
+            dags/*/.py
+            ml_pipeline/*/.py
 
       - name: Install black
         run: |
@@ -110,10 +111,10 @@ jobs:
       - name: Check format
         run: |
           if [ -z "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
-            echo "No py-files in the commit"
-          else         
-            echo "Py-files in the commit"
-            for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-              black --check --diff --line-length=79 "$file"
-            done    
+              echo "No py-files in the commit"
+          else                    
+              echo "Py-files in the commit"
+              for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+                  black --check --diff --line-length=79 "$file"
+              done    
           fi
