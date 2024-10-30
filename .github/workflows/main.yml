@@ -14,26 +14,8 @@ env:
   VAULT_URL: https://vault.domain.com:8200
 
 jobs:
-  find-commit-in-develop:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          git fetch origin develop
-          if git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }}; then
-              echo "Commits in develop - Check Passed"
-          else 
-              echo "No commits in develop branch">&2
-              exit 1
-          fi        
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
-
   enforce-branching-rules:
-    name: Ensure proper branching rules
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -114,6 +96,21 @@ jobs:
           else                    
               echo "Py-files in the commit"
               for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-                  black --check --diff --line-length=79 "$file"
+                  black --check --diff --line-length=79 "$file" || exit 1
               done    
           fi
+
+  find-commit-in-develop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          git fetch origin develop
+          if git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }}; then
+              echo "Commits in develop - Check Passed"
+          else 
+              echo "No commits in develop branch" >&2
+              exit 1
+          fi        
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
