@@ -1,7 +1,7 @@
 name: 'pr-checks'
 
 on:
-  push:  
+  push: 
     branches: 
       - develop 
       - main
@@ -9,7 +9,7 @@ on:
     branches:
       - main
       - develop
-     
+
 env:
   VAULT_URL: https://vault.domain.com:8200
 
@@ -20,14 +20,14 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           git fetch origin develop
-          if [ -z "$(git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }} )" ]; then
-              echo "No commits in develop branch" >&2
-              exit 1
-          else 
+          if git branch -r origin/develop --contains ${{ github.event.pull_request.head.sha }}; then
               echo "Commits in develop - Check Passed"
-          fi
+          else 
+              echo "No commits in develop branch">&2
+              exit 1
+          fi        
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
 
   enforce-branching-rules:
     name: Ensure proper branching rules
@@ -38,17 +38,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Fetch and check branch state
+      - name: Ensure develop is up-to-date before merging to main
         run: |
-          git fetch origin
-          git checkout develop
-          git pull origin develop
-          git checkout main
-          git pull origin main
-          if ! git merge-base --is-ancestor develop main; then
-              echo "Feature branch must be merged into develop before merging to main."
-              echo "Please merge your feature branch into develop first."
-              exit 1
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+              git fetch origin
+              git checkout develop
+              if [ "$(git rev-parse develop)" != "$(git merge-base develop main)" ]; then
+                  echo "Feature branch must be merged into develop before merging to main"
+                  exit 1
+              fi
           fi
 
   protect-develop:
@@ -80,12 +78,13 @@ jobs:
 
       - name: Ensure develop is up-to-date before merging to main
         run: |
-          git checkout develop
-          git pull origin develop
-          git checkout main
-          if ! git merge-base --is-ancestor develop main; then
-              echo "Feature branch must be merged into develop before merging to main."
-              exit 1
+          if [ "${{ github.ref }}" == "refs/heads/main" ]; then
+              git checkout develop
+              git checkout main
+              if [ "$(git rev-parse develop)" != "$(git merge-base develop main)" ]; then
+                  echo "Feature branch must be merged into develop before merging to main"
+                  exit 1
+              fi
           fi
 
   check-black-format:
@@ -111,10 +110,10 @@ jobs:
       - name: Check format
         run: |
           if [ -z "${{ steps.changed-files.outputs.all_changed_files }}" ]; then
-              echo "No py-files in the commit."
+              echo "No py-files in the commit"
           else                    
-              echo "Py-files in the commit."
+              echo "Py-files in the commit"
               for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-                  black --check --diff --line-length=79 "$file" || exit 1
+                  black --check --diff --line-length=79 "$file"
               done    
           fi
